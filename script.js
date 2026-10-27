@@ -181,7 +181,7 @@ function renderListaFacturas(c=cliente()){
       </div>
       <div class="invoice-bottom">
         <div><small>Saldo por cobrar</small><strong>${money(saldo(f))}</strong></div>
-        <div style="text-align:right"><small>Valor factura</small><b>${money(f.valor)}</b></div>
+        <div style="text-align:right"><small>Total final</small><b>${money(Math.max(0,f.valor-f.ret))}</b></div>
       </div>
     </article>`;
   }).join("")||(c.facturas.length?`<div class="empty">No hay coincidencias en las facturas de este cliente.</div>`:`<div class="empty">Este cliente todavía no tiene facturas.</div>`);
@@ -508,9 +508,29 @@ const ICONO_SUBIR=`<svg viewBox="0 0 24 24" width="26" height="26" fill="none" s
 const ICONO_LAPIZ=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m15 5 4 4M4 20l4-1 11-11a3 3 0 0 0-4-4L5 15l-1 5Z"/></svg>`;
 const ICONO_CLIP=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="m21 11-9 9a6 6 0 0 1-8-8l9-9a4 4 0 0 1 6 6l-9 9a2 2 0 0 1-3-3l8-8"/></svg>`;
 const MAX_ARCHIVO=1.5*1024*1024;
-let archivosFactura={proforma:null,factura:null},editandoFactura=false,seleccionInicio="todos";
+let archivosFactura={proforma:null,factura:null},editandoFactura=false,seleccionInicio="todos",tipoGraficoInicio="circular";
 let archivoRespaldoAnticipo=null,anticipoEditandoId=null,respaldoAnticipoEliminado=false;
 const BANCOS={Guayaquil:"bancoguayaquil.com",Pichincha:"pichincha.com",Machala:"bancomachala.com",Pacifico:"bancodelpacifico.com",Internacional:"bancointernacional.com.ec",Produbanco:"produbanco.com",'Cooperativa Jep':"jep.coop",Bolivariano:"bolivariano.com"};
+function renderGraficoCircular(totalNeto,totalCobrado,totalSaldo,porcSaldo,porcCobrado){
+  return `<div class="chart-layout"><div class="chart-ring" role="img" aria-label="Total facturado: ${money(totalNeto)}. Saldo pendiente: ${money(totalSaldo)} (${porcSaldo.toFixed(1)}%)." style="background:conic-gradient(#e55454 0% ${porcSaldo}%,#ffda27 ${porcSaldo}% 100%)"><div class="chart-ring-center"><small>Total Facturado</small><strong>${money(totalNeto)}</strong></div></div><div class="chart-legend"><div class="chart-legend-row"><span class="chart-legend-dot" style="background:#ffda27"></span><div><div class="chart-legend-label">Total Cobrado</div><strong class="chart-legend-value">${money(totalCobrado)}</strong><span class="chart-legend-percent">${porcCobrado.toFixed(1)}%</span></div></div><div class="chart-legend-row"><span class="chart-legend-dot" style="background:#e55454"></span><div><div class="chart-legend-label">Saldo pendiente</div><strong class="chart-legend-value">${money(totalSaldo)}</strong><span class="chart-legend-percent">${porcSaldo.toFixed(1)}%</span></div></div></div></div><p class="chart-note">Base del gráfico: valor de facturas menos retenciones. El amarillo representa lo cobrado y el rojo el saldo pendiente.</p>`;
+}
+function renderGraficoBarras(datos){
+  const items=datos.map(c=>{const facturado=sum(c.facturas.map(f=>Math.max(0,f.valor-f.ret))),pendiente=sum(c.facturas.map(saldo));return {nombre:c.nombre,facturado,pendiente,cobrado:Math.max(0,facturado-pendiente)};});
+  if(!items.length)return '<div class="chart-empty">No hay clientes para mostrar en este resumen.</div>';
+  const maximo=Math.max(1,...items.map(i=>i.facturado)),altoGrafico=220,arriba=32,abajo=108,izquierda=78,espacio=92,anchoBarra=38,ancho=Math.max(370,izquierda+18+items.length*espacio),alto=arriba+altoGrafico+abajo,base=arriba+altoGrafico;
+  const y=v=>base-(v/maximo)*altoGrafico,elementos=[];
+  for(let t=0;t<=4;t++){const valor=maximo*t/4,yy=y(valor);elementos.push(`<line x1="${izquierda}" y1="${yy}" x2="${ancho-10}" y2="${yy}" class="bar-gridline"/><text x="${izquierda-9}" y="${yy+4}" text-anchor="end" class="bar-axis-label">${safe(money(valor))}</text>`);}
+  items.forEach((item,index)=>{
+    const x=izquierda+index*espacio+20,alturaTotal=item.facturado/maximo*altoGrafico,alturaPendiente=item.facturado?item.pendiente/item.facturado*alturaTotal:0,alturaCobrado=Math.max(0,alturaTotal-alturaPendiente),yTotal=base-alturaTotal,completo=item.facturado>0&&item.pendiente<=0,verde=completo?'#24a56a':null;
+    elementos.push(`<g role="img" aria-label="${safe(item.nombre)}: facturado ${safe(money(item.facturado))}, cobrado ${safe(money(item.cobrado))}, pendiente ${safe(money(item.pendiente))}"><title>${safe(item.nombre)} — Facturado ${safe(money(item.facturado))}, cobrado ${safe(money(item.cobrado))}, pendiente ${safe(money(item.pendiente))}</title>`);
+    if(completo)elementos.push(`<rect x="${x}" y="${yTotal}" width="${anchoBarra}" height="${alturaTotal}" rx="4" fill="${verde}"/>`);
+    else if(item.facturado>0){if(alturaPendiente>0)elementos.push(`<rect x="${x}" y="${yTotal}" width="${anchoBarra}" height="${Math.max(alturaPendiente,2)}" rx="4" fill="#b8bec8"/>`);if(alturaCobrado>0)elementos.push(`<rect x="${x}" y="${base-alturaCobrado}" width="${anchoBarra}" height="${alturaCobrado}" rx="4" fill="#f39a36"/>`);}
+    elementos.push(`<text x="${x+anchoBarra/2}" y="${Math.max(arriba-6,yTotal-7)}" text-anchor="middle" class="bar-value-label">${item.pendiente>0?safe(money(item.pendiente)):item.facturado>0?'Pagado':'—'}</text>`);
+    elementos.push(`<text transform="translate(${x+anchoBarra/2+8} ${base+18}) rotate(-38)" text-anchor="end" class="bar-client-label">${safe(item.nombre)}</text>`);
+    elementos.push('</g>');
+  });
+  return `<div class="bar-chart-legend"><span><i class="bar-legend-color paid"></i>Completamente cobrado</span><span><i class="bar-legend-color collected"></i>Cobrado</span><span><i class="bar-legend-color pending"></i>Falta por cobrar</span></div><div class="bar-chart-scroll"><svg class="bar-chart" width="${ancho}" height="${alto}" viewBox="0 0 ${ancho} ${alto}" role="img" aria-label="Facturado, cobrado y saldo pendiente por cliente">${elementos.join('')}</svg></div><p class="chart-note">Cada barra representa el total facturado del cliente. Las etiquetas sobre las barras muestran cuánto falta por cobrar.</p>`;
+}
 function renderInicio(){
   const selector=$("filtroClienteInicio"),previo=seleccionInicio;
   selector.innerHTML='<option value="todos">Todos los clientes</option>'+[...clientes].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(c=>`<option value="${safe(c.id)}">${safe(c.nombre)}</option>`).join('');
@@ -525,9 +545,13 @@ function renderInicio(){
   $("totalAnticipos").textContent=money(sum(facturas.map(f=>f.anticipos+anticiposRegistradosTotal(f))));
   $("totalFacturas").textContent=facturas.length;
   $("totalClientes").textContent=datos.length;
+  $("graficoCircular").classList.toggle('active',tipoGraficoInicio==='circular');
+  $("graficoBarras").classList.toggle('active',tipoGraficoInicio==='barras');
+  $("graficoCircular").setAttribute('aria-pressed',String(tipoGraficoInicio==='circular'));
+  $("graficoBarras").setAttribute('aria-pressed',String(tipoGraficoInicio==='barras'));
   const panel=$("clientesInicio");
   if(!totalNeto){panel.innerHTML='<div class="chart-empty">No hay facturas para mostrar en este resumen.</div>';return;}
-  panel.innerHTML=`<div class="chart-layout"><div class="chart-ring" role="img" aria-label="Facturación neta: ${money(totalNeto)}. Saldo pendiente: ${money(totalSaldo)} (${porcSaldo.toFixed(1)}%)." style="background:conic-gradient(#83c9f5 0% ${porcSaldo}%,#ffda27 ${porcSaldo}% 100%)"><div class="chart-ring-center"><small>Facturación neta</small><strong>${money(totalNeto)}</strong></div></div><div class="chart-legend"><div class="chart-legend-row"><span class="chart-legend-dot" style="background:#ffda27"></span><div><div class="chart-legend-label">Facturación neta cobrada</div><strong class="chart-legend-value">${money(totalCobrado)}</strong><span class="chart-legend-percent">${porcCobrado.toFixed(1)}%</span></div></div><div class="chart-legend-row"><span class="chart-legend-dot" style="background:#83c9f5"></span><div><div class="chart-legend-label">Saldo pendiente</div><strong class="chart-legend-value">${money(totalSaldo)}</strong><span class="chart-legend-percent">${porcSaldo.toFixed(1)}%</span></div></div></div></div><p class="chart-note">Base del gráfico: valor de facturas menos retenciones. El amarillo representa lo cobrado y el azul el saldo pendiente.</p>`;
+  panel.innerHTML=tipoGraficoInicio==='barras'?renderGraficoBarras(datos):renderGraficoCircular(totalNeto,totalCobrado,totalSaldo,porcSaldo,porcCobrado);
 }
 function configurarFormularioFactura(){
   const form=$("formFactura");
@@ -632,6 +656,8 @@ configurarFormularioFactura();
 bindCurrencyInputs();
 aplicarEstilosExtra();
 $("filtroClienteInicio").addEventListener("change",e=>{seleccionInicio=e.target.value;renderInicio();});
+$("graficoCircular").addEventListener("click",()=>{tipoGraficoInicio='circular';renderInicio();});
+$("graficoBarras").addEventListener("click",()=>{tipoGraficoInicio='barras';renderInicio();});
 $("aBanco").addEventListener("change",actualizarLogoBanco);
 $("aTipoMovimiento").addEventListener("change",actualizarCamposMovimiento);
 cargar();
