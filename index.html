@@ -87,7 +87,14 @@
     </div>
     <div class="section-heading">
       <h2>Facturación y saldo</h2>
-      
+      <div class="chart-view-toggle" role="group" aria-label="Tipo de gráfico">
+        <button id="graficoCircular" class="chart-view-button active" type="button" aria-label="Ver gráfico circular" aria-pressed="true">
+          <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9h9A9 9 0 1 1 12 3Z"/><path d="M16 3.7A9 9 0 0 1 20.3 8H16V3.7Z"/></svg>
+        </button>
+        <button id="graficoBarras" class="chart-view-button" type="button" aria-label="Ver gráfico de barras" aria-pressed="false">
+          <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11h4v9M10 20V5h4v15M16 20v-7h4v7M2 20h20"/></svg>
+        </button>
+      </div>
     </div>
     <div id="clientesInicio" class="chart-panel"></div>
   </section>
