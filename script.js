@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 const $=id=>document.getElementById(id);
 const ICONO_USER=`<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>`;
 const ICONO_FACTURA=`<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>`;
@@ -137,6 +137,7 @@ function renderClientes(){
 }
 function abrirCliente(id){
   clienteId=id;
+  $("buscarFacturaCliente").value="";
   if(supabaseActive){cargarFacturasCliente(id).catch(error=>aviso("No se pudieron cargar las facturas: "+error.message));return;}
   navegar("detalle");
 }
@@ -150,8 +151,22 @@ function renderDetalle(){
   $("saldoDetalle").textContent=money(deuda(c));
   $("facturasDetalle").textContent=c.facturas.length+" facturas";
   $("anticiposDetalle").textContent=money(pagado(c))+" en anticipos";
-  $("cantidadFacturas").textContent=c.facturas.length+" registros";
-  $("listaFacturas").innerHTML=c.facturas.map(f=>{
+  renderListaFacturas(c);
+}
+function normalizarBusqueda(valor){return String(valor??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase();}
+function textoBusquedaFactura(f){
+  const partes=[];
+  const agregar=(valor)=>{if(valor==null)return;if(typeof valor==='object'){if(Array.isArray(valor)){valor.forEach(agregar);return;}for(const [clave,dato] of Object.entries(valor)){if(clave==='contenido')continue;partes.push(clave);agregar(dato);}return;}partes.push(String(valor));};
+  agregar(f);
+  for(const centavos of [f.valor,f.ret,f.anticipos,...(f.anticiposRegistrados||[]).map(a=>a.valor)])if(Number.isFinite(Number(centavos)))partes.push(money(Number(centavos)));
+  return normalizarBusqueda(partes.join(' '));
+}
+function renderListaFacturas(c=cliente()){
+  if(!c)return;
+  const q=normalizarBusqueda($("buscarFacturaCliente").value.trim());
+  const coincidencias=c.facturas.filter(f=>!q||textoBusquedaFactura(f).includes(q));
+  $("cantidadFacturas").textContent=q?`${coincidencias.length} de ${c.facturas.length} facturas`:c.facturas.length+" registros";
+  $("listaFacturas").innerHTML=coincidencias.map(f=>{
     const [label,clase]=estado(f);
     return `<article class="invoice-card" data-factura="${safe(f.id)}" tabindex="0" role="button">
       <div class="invoice-top">
@@ -169,7 +184,7 @@ function renderDetalle(){
         <div style="text-align:right"><small>Valor factura</small><b>${money(f.valor)}</b></div>
       </div>
     </article>`;
-  }).join("")||`<div class="empty">Este cliente todavía no tiene facturas.</div>`;
+  }).join("")||(c.facturas.length?`<div class="empty">No hay coincidencias en las facturas de este cliente.</div>`:`<div class="empty">Este cliente todavía no tiene facturas.</div>`);
 }
 function abrirFactura(id){
   facturaId=id;
@@ -572,6 +587,7 @@ $("volverClientes").addEventListener("click",()=>navegar("clientes"));
 $("volverDetalle").addEventListener("click",()=>navegar("detalle"));
 $("editarCliente").addEventListener("click",()=>nuevoCliente(true));
 $("buscar").addEventListener("input",()=>{clientesOffset=0;renderClientes();});
+$("buscarFacturaCliente").addEventListener("input",()=>renderListaFacturas());
 $("authToggle").addEventListener("click",()=>{authMode=authMode==="signin"?"signup":"signin";$("authTitle").textContent=authMode==="signin"?"Mi Cartera":"Crear cuenta";$("authDescription").textContent=authMode==="signin"?"Inicia sesión para acceder a tus datos.":"Regístrate con tu correo y contraseña.";$("authSubmit").textContent=authMode==="signin"?"Iniciar sesión":"Crear cuenta";$("authToggle").textContent=authMode==="signin"?"Crear cuenta":"Ya tengo una cuenta";$("authPassword").autocomplete=authMode==="signin"?"current-password":"new-password";$("authMessage").textContent="";});
 $("authForm").addEventListener("submit",async e=>{e.preventDefault();$("authMessage").textContent="Conectando…";try{const email=$("authEmail").value.trim(),password=$("authPassword").value;if(authMode==="signin")await MiCarteraDB.signIn(email,password);else{const result=await MiCarteraDB.signUp(email,password);if(!result.session){$("authMessage").textContent="Revisa tu correo para confirmar la cuenta y luego inicia sesión.";return;}}await iniciarAplicacionRemota();}catch(error){$("authMessage").textContent=error.message||"No se pudo iniciar sesión.";}});
 $("btnCerrarSesion").addEventListener("click",async()=>{try{await MiCarteraDB.signOut();supabaseActive=false;clientes=[];clienteId=null;facturaId=null;authVisible(true);$("btnCerrarSesion").classList.add("hidden");}catch(error){aviso("No se pudo cerrar la sesión: "+error.message);}});
