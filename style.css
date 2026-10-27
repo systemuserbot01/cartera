@@ -43,7 +43,7 @@ main{padding:0 18px 20px}
 .summary-card small{font-size:13px;color:var(--muted);margin-bottom:8px;line-height:1.35}
 .summary-card strong{font-size:clamp(21px,5.2vw,25px);letter-spacing:-.5px;overflow-wrap:anywhere;line-height:1.25}
 .card-list{display:flex;flex-direction:column;gap:11px}
-.customer-card,.invoice-card,.abono-card{background:white;border:1px solid var(--line);border-radius:17px;padding:17px;box-shadow:0 2px 8px #102a5005}
+.customer-card,.invoice-card,.anticipo-card{background:white;border:1px solid var(--line);border-radius:17px;padding:17px;box-shadow:0 2px 8px #102a5005}
 .customer-card,.invoice-card{cursor:pointer}
 .customer-top{display:flex;align-items:center;gap:12px}
 .avatar{width:46px;height:46px;border-radius:13px;background:#eaf1fb;color:var(--blue);display:grid;place-items:center;font-weight:800;font-size:17px;flex-shrink:0}
@@ -142,12 +142,13 @@ main{padding:0 18px 20px}
 .receipt-final{background:#edf3fb;border-radius:8px;padding:14px 12px;margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .receipt-final span{font-size:14px;color:var(--blue);font-weight:800}
 .receipt-final strong{font-size:clamp(24px,5.7vw,29px);color:var(--blue);letter-spacing:-.5px;overflow-wrap:anywhere;line-height:1.3}
-.abono-card{display:flex;align-items:center;gap:12px}
-.abono-icon{width:42px;height:42px;border-radius:12px;background:#e6f6ed;color:var(--green);display:grid;place-items:center;font-size:23px;flex-shrink:0}
-.abono-text{flex:1;min-width:0}
-.abono-text small{color:var(--muted);font-size:13px}
-.abono-text strong{display:block;font-size:20px;margin-top:5px;overflow-wrap:anywhere}
-.delete-mini{background:#fff1f1;color:#c34c4c;border:0;border-radius:8px;padding:10px;font-size:13px}
+.anticipo-card{display:flex;align-items:center;gap:12px}
+.anticipo-icon{width:48px;height:48px;flex:0 0 48px;border-radius:13px;background:#e2f5e9;color:#13865c;display:grid;place-items:center;font-size:27px}
+.anticipo-icon .ui-icon{width:27px;height:27px;color:inherit}
+.anticipo-text{flex:1 1 auto;min-width:0}
+.anticipo-text small{display:block;color:var(--muted);font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+.anticipo-text strong{display:block;font-size:20px;margin-top:5px;overflow-wrap:anywhere}
+.delete-mini{background:#fff1f1;color:#c34c4c;border:0;border-radius:8px;padding:10px;font-size:13px;margin-left:auto;flex:0 0 auto;align-self:center;white-space:nowrap}
 .delete-link{border:0;background:none;color:#c34c4c;font-size:14px;margin:27px 0 10px}
 .empty{text-align:center;padding:38px 20px;color:var(--muted);font-size:14px;background:white;border:1px dashed var(--line);border-radius:15px}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:720px;height:calc(74px + env(safe-area-inset-bottom));background:white;border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:flex-start;padding:10px 15px env(safe-area-inset-bottom);z-index:30}
@@ -229,7 +230,7 @@ body{background:#e9edf5}
 .avatar .ui-icon{width:25px;height:25px}
 .avatar.large .ui-icon{width:30px;height:30px}
 .invoice-icon .ui-icon{width:23px;height:23px}
-.abono-icon .ui-icon{width:23px;height:23px}
+.anticipo-icon .ui-icon{width:27px;height:27px}
 .customer-metrics>div{min-width:0}
 .invoice-bottom>div:last-child{max-width:47%}
 /* Ventana Datos */
@@ -255,23 +256,39 @@ body{background:#e9edf5}
 @media(max-width:350px){.datos-heading h2{font-size:22px}.datos-card{padding:15px}.nav-item{min-width:0;flex:1}}
 /* RESUMEN Y GRÁFICO CIRCULAR */
 #inicio .section-heading:first-child{align-items:center}#filtroClienteInicio{width:min(56%,250px);min-width:0;border:1px solid #dce5f1;border-radius:11px;background:#fff;color:#092d62;padding:10px 30px 10px 11px;font-size:13px;font-weight:700;outline:none;text-overflow:ellipsis}#filtroClienteInicio:focus{border-color:#6895ce}.chart-panel{background:#fff;border:1px solid #e9edf4;border-radius:19px;padding:20px 15px 24px}.chart-layout{display:flex;align-items:center;justify-content:center;gap:25px;flex-wrap:wrap}.chart-ring{width:205px;height:205px;flex:0 0 205px;border-radius:50%;position:relative;display:grid;place-items:center;box-shadow:0 4px 15px #0a285b0a}.chart-ring::after{content:"";position:absolute;inset:33px;background:#fff;border-radius:50%;box-shadow:inset 0 0 0 1px #edf1f7}.chart-ring-center{position:relative;z-index:1;text-align:center;padding:5px}.chart-ring-center small{display:block;font-size:12px;color:#718198;margin-bottom:5px}.chart-ring-center strong{display:block;color:#092d62;font-size:20px;font-weight:850;overflow-wrap:anywhere}.chart-legend{display:flex;flex-direction:column;gap:17px;min-width:175px;max-width:100%}.chart-legend-row{display:flex;gap:10px;align-items:flex-start}.chart-legend-dot{width:12px;height:12px;border-radius:4px;flex:0 0 12px;margin-top:5px}.chart-legend-label{font-size:13px;color:#697b92}.chart-legend-value{display:block;color:#092d62;font-weight:850;font-size:19px;line-height:1.4}.chart-legend-percent{font-size:13px;font-weight:750;color:#526a88}.chart-note{text-align:center;font-size:12px;color:#8290a3;margin:17px 0 0}.chart-empty{text-align:center;padding:28px 8px;color:#718198}.retention-control{flex:1 1 auto;flex-wrap:wrap}.retention-control select{max-width:none!important;width:auto!important;min-width:116px;flex:0 1 auto;padding-right:23px!important;white-space:nowrap}.retention-control input{max-width:none!important;width:88px!important}.retention-row{gap:8px}.retencion-monto-control{margin-left:auto}@media(max-width:420px){.chart-ring{width:185px;height:185px;flex-basis:185px}.chart-ring::after{inset:30px}.chart-layout{gap:19px}.chart-legend{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:15px}.chart-legend-value{font-size:17px}#filtroClienteInicio{font-size:12px;width:55%}}
-/* FORMULARIO DE ANTICIPOS: BANCO Y TIPO DE CUENTA */
-#formAbono .anticipo-fields{display:flex;flex-direction:column;gap:0;min-width:0}
-#formAbono .anticipo-fields>label{display:block;margin:17px 0 8px;font-size:14px;font-weight:700;color:#53657b}
-#formAbono .bank-select-wrap{position:relative;display:flex;align-items:center;width:100%;min-width:0;min-height:50px;border:1px solid #dfe5ee;border-radius:10px;background:#fafbfc;overflow:hidden}
-#formAbono .bank-select-wrap:focus-within{border-color:var(--blue)}
-#formAbono .bank-logo{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:29px;height:29px;display:grid;place-items:center;pointer-events:none;z-index:1;overflow:hidden;border-radius:7px;background:#eaf1fb;color:var(--blue)}
-#formAbono .bank-logo img{position:absolute;inset:0;width:100%;height:100%;padding:3px;box-sizing:border-box;object-fit:contain;display:block;background:#eaf1fb}
-#formAbono .bank-logo .bank-initial{display:grid;place-items:center;width:100%;height:100%;font-size:15px;font-weight:800}
-#formAbono .bank-select-wrap select{display:block;appearance:auto;-webkit-appearance:menulist;width:100%;min-width:0;min-height:50px;margin:0;padding:12px 34px 12px 51px;border:0;border-radius:10px;outline:0;background:transparent;color:var(--text);font-size:16px;line-height:1.4;cursor:pointer}
-#formAbono #aTipoCuenta{display:block;appearance:auto;-webkit-appearance:menulist;width:100%;min-width:0;min-height:50px;margin:0;padding:12px 34px 12px 14px;border:1px solid #dfe5ee;border-radius:10px;outline:0;background:#fafbfc;color:var(--text);font-size:16px;line-height:1.4;cursor:pointer}
-#formAbono #aTipoCuenta:focus{border-color:var(--blue)}
-#formAbono select:invalid{color:#8290a3}
-#formAbono select option{color:var(--text);background:#fff}
+/* Formulario y tarjeta de historial de anticipos */
+#formAnticipo .anticipo-fields{display:flex;flex-direction:column;gap:0;min-width:0}
+#formAnticipo .anticipo-fields>label{display:block;margin:17px 0 8px;font-size:14px;font-weight:700;color:#53657b}
+#formAnticipo .bank-select-wrap{position:relative;display:flex;align-items:center;width:100%;min-width:0;min-height:50px;border:1px solid #dfe5ee;border-radius:10px;background:#fafbfc;overflow:hidden}
+#formAnticipo .bank-select-wrap:focus-within{border-color:var(--blue)}
+#formAnticipo .bank-logo{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:29px;height:29px;display:grid;place-items:center;pointer-events:none;z-index:1;overflow:hidden;border-radius:7px;background:#eaf1fb;color:var(--blue)}
+#formAnticipo .bank-logo img{position:absolute;inset:0;width:100%;height:100%;padding:3px;box-sizing:border-box;object-fit:contain;display:block;background:#eaf1fb}
+#formAnticipo .bank-logo .bank-initial{display:grid;place-items:center;width:100%;height:100%;font-size:15px;font-weight:800}
+#formAnticipo .bank-select-wrap select{display:block;appearance:auto;-webkit-appearance:menulist;width:100%;min-width:0;min-height:50px;margin:0;padding:12px 34px 12px 51px;border:0;border-radius:10px;outline:0;background:transparent;color:var(--text);font-size:16px;line-height:1.4;cursor:pointer}
+#formAnticipo .movimiento-fila{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:17px;min-width:0}
+#formAnticipo .movimiento-campo{min-width:0}
+#formAnticipo .movimiento-campo label{display:block;min-height:34px;margin:0 0 8px;font-size:13px;font-weight:700;color:#53657b;line-height:1.3}
+#formAnticipo .movimiento-campo select,#formAnticipo .movimiento-campo input{box-sizing:border-box;display:block;width:100%;min-width:0;min-height:50px;margin:0;padding:12px 10px;border:1px solid #dfe5ee;border-radius:10px;outline:0;background:#fafbfc;color:var(--text);font-size:15px;line-height:1.3}
+#formAnticipo .movimiento-campo select{appearance:auto;-webkit-appearance:menulist;padding-right:22px;cursor:pointer}
+#formAnticipo .movimiento-campo select:focus,#formAnticipo .movimiento-campo input:focus{border-color:var(--blue)}
+#formAnticipo .movimiento-campo input:disabled{background:#eef1f5;color:#8290a3;cursor:not-allowed}
+#formAnticipo .movimiento-campo.hidden{display:none}
+#formAnticipo select:invalid{color:#8290a3}
+#formAnticipo select option{color:var(--text);background:#fff}
+.anticipo-card{align-items:center;min-width:0}
+.anticipo-text{overflow-wrap:anywhere}
+.anticipo-text .documento-capsula{margin-top:7px}
 /* RETENCIÓN: SELECTOR ADAPTABLE SIN CORTAR PORCENTAJES */
 .receipt-total-row.retention-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px}
 .retention-row .retention-control{display:flex;flex:1 1 170px;align-items:center;flex-wrap:wrap;gap:7px;min-width:0}
 .retention-row .retention-control select{box-sizing:border-box;display:block;flex:0 0 auto;width:max-content!important;min-width:116px;max-width:100%!important;min-height:38px;padding:7px 27px 7px 10px!important;white-space:nowrap;font-size:14px}
 .retention-row .retention-control input{width:90px!important;max-width:100%!important;min-height:38px}
 .retention-row .retencion-monto-control{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;max-width:100%;min-width:0}
-@media(max-width:380px){#formAbono .bank-select-wrap select,#formAbono #aTipoCuenta{font-size:15px}.retention-row .retention-control{flex-basis:150px}.retention-row .retention-control select{font-size:13px;min-width:108px}}
+@media(max-width:380px){#formAnticipo .bank-select-wrap select,#formAnticipo .movimiento-campo select,#formAnticipo .movimiento-campo input{font-size:13px;padding-left:8px;padding-right:8px}#formAnticipo .movimiento-fila{gap:7px}#formAnticipo .movimiento-campo label{font-size:12px}.retention-row .retention-control{flex-basis:150px}.retention-row .retention-control select{font-size:13px;min-width:108px}.anticipo-card{gap:9px;padding:13px}.anticipo-icon{width:44px;height:44px;flex-basis:44px}.anticipo-icon .ui-icon{width:25px;height:25px}.anticipo-text small{font-size:12px}.delete-mini{padding:8px;font-size:12px}}
+
+/* Adjuntos y respaldos en verde claro */
+.documento-capsula{border-color:#c8e5d0!important;background:#eaf7ed!important;color:#28623a!important}
+.documento-cargado{border-color:#c8e5d0!important;background:#eff9f1!important}
+.documento-drop{border-color:#c8e5d0!important;background:#f7fcf8!important}
+.documento-zona.arrastrando .documento-drop{border-color:#77b98a!important;background:#e5f5e9!important}
+.archivo-icono{background:#dff1e3!important;color:#28623a!important}
