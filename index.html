@@ -160,18 +160,22 @@
     </div>
     <div class="detail-identity">
       <div class="avatar large" id="avatarDetalle">C</div>
-      <div>
+      <div class="detail-client-name">
         <h2 id="nombreDetalle"></h2>
         <p id="rucDetalle"></p>
       </div>
-    </div>
-    <div class="plain-balance">
-      <span class="plain-balance-label">Saldo pendiente</span>
-      <strong id="saldoDetalle">$0,00</strong>
-      <div class="plain-balance-meta">
-        <span id="facturasDetalle">0 facturas</span>
-        <span id="anticiposDetalle">$0,00 en anticipos</span>
+      <div class="detail-balance">
+        <span class="plain-balance-label">Saldo pendiente</span>
+        <strong id="saldoDetalle">$0,00</strong>
       </div>
+    </div>
+    <label class="search-wrap invoice-search" for="buscarFacturaCliente">
+      <span><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span>
+      <input id="buscarFacturaCliente" type="search" placeholder="Buscar en las facturas de este cliente" autocomplete="off">
+    </label>
+    <div class="plain-balance-meta detail-meta">
+      <span id="facturasDetalle">0 facturas</span>
+      <span id="anticiposDetalle">$0,00 en anticipos</span>
     </div>
     <div class="section-heading">
       <h2>Facturas emitidas</h2>
