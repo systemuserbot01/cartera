@@ -242,9 +242,8 @@ function renderFactura(){
     </div>
   `).join("")||`<div class="empty">Todavía no hay anticipos registrados.</div>`;
 }
-function abrirEditorMontoRetencion(){const input=$("retencionMontoInput");if(!input)return;$("retencionEditor").classList.remove("hidden");$("editarRetencion").classList.add("hidden");$("retencionValorVisible").classList.add("hidden");input.value=(factura().ret/100).toFixed(2);actualizarPorcentajeRetencionManual();input.focus();}
-let verDecimalesRetencion=false;
-function actualizarPorcentajeRetencionManual(){const etiqueta=$("retencionPorcentajeCalculado"),boton=$("alternarDecimalesRetencion"),f=factura(),select=$("retencionPorcentaje"),input=$("retencionMontoInput"),editor=$("retencionEditor");if(!etiqueta||!f||!select)return;const ocultar=()=>{etiqueta.textContent='';etiqueta.classList.add('hidden');boton?.classList.add('hidden');};const editando=editor&&!editor.classList.contains('hidden'),esManual=select.value==='fixed'||editando;if(!esManual){ocultar();return;}const valor=editando?(input?.value.trim()===''?null:cents(input.value)):f.ret;if(valor==null||!Number.isFinite(valor)){ocultar();return;}const pct=f.valor?valor/f.valor*100:0;if(!Number.isFinite(pct)){ocultar();return;}const formato=verDecimalesRetencion?{maximumFractionDigits:12}:{minimumFractionDigits:2,maximumFractionDigits:2};etiqueta.textContent=pct.toLocaleString('es-EC',formato)+'%';etiqueta.classList.remove('hidden');if(boton){boton.innerHTML=verDecimalesRetencion?'<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path d="m3 3 18 18"/></svg>':'<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';const label=verDecimalesRetencion?'Mostrar solo dos decimales':'Mostrar todos los decimales';boton.setAttribute('aria-label',label);boton.title=label;boton.classList.remove('hidden');}}
+function abrirEditorMontoRetencion(){const input=$("retencionMontoInput");if(!input)return;$("retencionEditor").classList.remove("hidden");$("editarRetencion").classList.add("hidden");$("retencionValorVisible").classList.add("hidden");input.value=(factura().ret/100).toFixed(2);input.focus();}
+function actualizarPorcentajeRetencionManual(){}
 function cambiarRetencion(){
   const f=factura();
   if(!f)return;
@@ -511,7 +510,6 @@ const ICONO_LAPIZ=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" s
 const ICONO_CLIP=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="m21 11-9 9a6 6 0 0 1-8-8l9-9a4 4 0 0 1 6 6l-9 9a2 2 0 0 1-3-3l8-8"/></svg>`;
 const MAX_ARCHIVO=1.5*1024*1024;
 let archivosFactura={proforma:null,factura:null},editandoFactura=false,seleccionInicio="todos",tipoGraficoInicio="circular";
-$("alternarDecimalesRetencion")?.addEventListener("click",()=>{verDecimalesRetencion=!verDecimalesRetencion;actualizarPorcentajeRetencionManual();});
 let archivoRespaldoAnticipo=null,anticipoEditandoId=null,respaldoAnticipoEliminado=false;
 const BANCOS={Guayaquil:"bancoguayaquil.com",Pichincha:"pichincha.com",Machala:"bancomachala.com",Pacifico:"bancodelpacifico.com",Internacional:"bancointernacional.com.ec",Produbanco:"produbanco.com",'Cooperativa Jep':"jep.coop",Bolivariano:"bolivariano.com"};
 function renderGraficoCircular(totalNeto,totalCobrado,totalSaldo,porcSaldo,porcCobrado){
@@ -638,10 +636,9 @@ $("importar").addEventListener("click",()=>$("archivo").click());
 $("archivo").addEventListener("change",importar);
 document.querySelectorAll(".close").forEach(b=>b.addEventListener("click",cerrar));
 document.querySelectorAll(".overlay").forEach(m=>m.addEventListener("click",e=>{
-  if(e.target===m)cerrar();
+  e.stopPropagation();
 }));
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape")cerrar();
   if((e.key==="Enter"||e.key===" ")&&e.target.matches("[data-cliente],[data-factura]")){
     e.preventDefault();
     e.target.click();
