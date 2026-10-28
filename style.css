@@ -138,6 +138,10 @@ main{padding:0 18px 20px}
 .receipt-total-row>span,.retention-control>span{color:#53657d}
 .receipt-total-row strong{font-size:15px}
 .retention-control{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-width:0}
+.retention-control .retencion-equivalente{display:inline-flex;align-items:center;min-height:34px;padding:5px 8px;border-radius:8px;background:#eaf1fb;color:var(--blue);font-size:12px;font-weight:800;white-space:nowrap}
+.retencion-ver-decimales{display:inline-grid;place-items:center;flex:0 0 auto;width:28px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted)}
+.retencion-ver-decimales:hover,.retencion-ver-decimales:focus-visible{background:#eef3fa;color:var(--blue)}
+.retencion-ver-decimales .ui-icon{width:18px;height:18px}
 .retention-control select,.retention-control input{border:1px solid #dce4ef;background:#f8fafc;border-radius:7px;padding:7px;color:var(--blue);font-size:14px;outline:none;max-width:105px;min-height:36px}
 .retention-control input{width:70px}
 .receipt-final{background:#edf3fb;border-radius:8px;padding:14px 12px;margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
