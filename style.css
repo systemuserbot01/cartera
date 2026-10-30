@@ -53,6 +53,7 @@ main{padding:0 18px 20px}
 .avatar.large svg{width:29px;height:29px}
 .customer-name{flex:1;min-width:0}
 .customer-name h3{font-size:16px;font-weight:750;margin:0 0 6px;overflow-wrap:anywhere;line-height:1.35}
+.customer-name-line{display:flex;align-items:center;gap:6px;min-width:0}.customer-name-line h3{flex:0 1 auto;min-width:0;margin:0}.customer-secondary-name{font-size:14px!important;font-weight:600;color:#405674!important;margin:0 0 4px!important;line-height:1.35}.correo-trigger{display:grid;place-items:center;flex:0 0 auto;width:27px;height:27px;padding:0;border:0;border-radius:7px;background:#eaf1fb;color:var(--blue);cursor:pointer}.correo-trigger .ui-icon{width:16px;height:16px}.correo-trigger:hover{background:#dce9fa}.correo-popover{position:fixed;z-index:120;display:flex;align-items:center;gap:9px;max-width:min(90vw,380px);padding:9px 10px 9px 13px;border:1px solid #dce5f1;border-radius:11px;background:#fff;color:var(--text);box-shadow:0 8px 28px #102a5026;font-size:13px;overflow-wrap:anywhere}.correo-popover span{min-width:0}.correo-copy{display:grid;place-items:center;flex:0 0 auto;width:30px;height:30px;border:0;border-radius:7px;background:#eaf1fb;color:var(--blue)}.correo-copy .ui-icon{width:17px;height:17px}
 .customer-name p{color:var(--muted);font-size:13px;margin:0;overflow-wrap:anywhere}
 .chevron{font-size:25px;color:#aab4c2}
 .customer-divider{height:1px;background:var(--line);margin:16px 0}
@@ -93,6 +94,7 @@ main{padding:0 18px 20px}
 .detail-identity{display:flex;align-items:center;gap:12px;margin-bottom:22px}
 .detail-identity>div:nth-child(2){flex:1;min-width:0}
 .detail-identity h2{font-size:20px;margin:0 0 6px;overflow-wrap:anywhere;line-height:1.3}
+.detail-name-line{display:flex;align-items:center;gap:6px;min-width:0;margin-bottom:6px}.detail-name-line h2{min-width:0;margin:0!important}.detail-name-line #correoDetalle{display:inline-flex;flex:0 0 auto}
 .detail-identity p{color:var(--muted);font-size:13px;margin:0}
 .round-outline{width:39px;height:39px;border:1px solid var(--line);border-radius:50%;background:white;font-size:19px}
 .plain-balance{padding:4px 2px 19px;border-bottom:1px solid var(--line)}
