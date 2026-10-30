@@ -8,7 +8,8 @@ const KEY="control_clientes_minimal_v1";
 const VIEW_KEY="mi_cartera_vista_clientes";
 let clientes=[],clienteId=null,facturaId=null,editando=false,vista="inicio";
 let vistaClientes="detallada";
-let authMode="signin", supabaseActive=false, clientesOffset=0;
+let authMode="signin", supabaseActive=false, clientesOffset=0, empresaActiva="MAGROCAM";
+try{empresaActiva=localStorage.getItem("mi_cartera_empresa")||"MAGROCAM";}catch(e){}
 try{vistaClientes=localStorage.getItem(VIEW_KEY)==="simple"?"simple":"detallada";}catch(e){}
 const uid=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
 const hoy=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;};
@@ -27,7 +28,7 @@ const facturado=c=>sum(c.facturas.map(f=>f.valor));
 const pagado=c=>sum(c.facturas.map(f=>f.anticipos+anticiposRegistradosTotal(f)));
 const deuda=c=>sum(c.facturas.map(saldo));
 const cantidadFacturas=()=>sum(clientes.map(c=>c.facturas.length));
-const fromDbCliente=r=>({...r,facturas:(r.mc_facturas||[]).map(fromDbFactura)});
+const fromDbCliente=r=>({...r,nombreComercial:r.nombre||"",nombreCliente:r.nombre_cliente||"",facturas:(r.mc_facturas||[]).map(fromDbFactura)});
 const fromDbFactura=r=>({id:r.id,numero:r.numero,fecha:r.fecha,detalle:r.detalle||"",valor:Number(r.valor_centavos),ret:Number(r.retencion_centavos),retPct:r.retencion_porcentaje==null?undefined:Number(r.retencion_porcentaje),anticipos:Number(r.anticipo_inicial_centavos),proforma:r.proforma||"",cheque:r.cheque||"",transf:r.transferencia||"",banco:r.banco||"",cuenta:r.cuenta||"",anticiposRegistrados:(r.mc_anticipos||[]).map(a=>({id:a.id,fecha:a.fecha,valor:Number(a.valor_centavos),banco:a.banco,tipoMovimiento:a.tipo_movimiento||'Transferencia',tipoCuenta:a.tipo_cuenta||'',numeroCheque:a.numero_cheque||'',respaldoPath:a.respaldo_path}))});
 function toDbFactura(f,cid){return {cliente_id:cid,numero:f.numero,fecha:f.fecha,detalle:f.detalle||"",valor_centavos:f.valor,retencion_centavos:f.ret,retencion_porcentaje:f.retPct??null,anticipo_inicial_centavos:f.anticipos,proforma:f.proforma||"",cheque:f.cheque||"",transferencia:f.transf||"",banco:f.banco||"",cuenta:f.cuenta||""};}
 function authVisible(visible){$("authPanel").classList.toggle("hidden",!visible);document.querySelector("main").classList.toggle("hidden",visible);document.querySelector(".bottom-nav").classList.toggle("hidden",visible);$("btnAgregar").classList.toggle("hidden",visible);}
@@ -74,11 +75,13 @@ function estado(f){
   return ["Pendiente",""];
 }
 function tarjetaCliente(c){
+  const comercial=c.nombreComercial||c.nombre||"Cliente",nombreCliente=c.nombreCliente||c.nombre_cliente||"";
   return `<article class="customer-card" data-cliente="${safe(c.id)}" tabindex="0" role="button">
     <div class="customer-top">
       <div class="avatar">${ICONO_USER}</div>
       <div class="customer-name">
-        <h3>${safe(c.nombre)}</h3>
+        <div class="customer-name-line"><h3>${safe(comercial)}</h3>${botonCorreo(c)}</div>
+        ${nombreCliente?`<p class="customer-secondary-name">${safe(nombreCliente)}</p>`:""}
         <p>RUC: ${safe(c.ruc||"No registrado")}</p>
       </div>
       <span class="chevron">${ICONO_CHEVRON}</span>
@@ -96,10 +99,12 @@ function tarjetaCliente(c){
   </article>`;
 }
 function tarjetaSimple(c){
+  const comercial=c.nombreComercial||c.nombre||"Cliente",nombreCliente=c.nombreCliente||c.nombre_cliente||"";
   return `<article class="simple-card" data-cliente="${safe(c.id)}" tabindex="0" role="button">
     <div class="avatar">${ICONO_USER}</div>
     <div class="simple-identity">
-      <h3>${safe(c.nombre)}</h3>
+      <div class="customer-name-line"><h3>${safe(comercial)}</h3>${botonCorreo(c)}</div>
+      ${nombreCliente?`<p class="customer-secondary-name">${safe(nombreCliente)}</p>`:""}
       <p>RUC: ${safe(c.ruc||"No registrado")}</p>
     </div>
     <div class="simple-amount">
@@ -109,6 +114,8 @@ function tarjetaSimple(c){
     <span class="simple-arrow">${ICONO_CHEVRON}</span>
   </article>`;
 }
+const ICONO_CORREO=`<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>`;
+function botonCorreo(c){return c.correo?`<button type="button" class="correo-trigger" data-correo="${safe(c.id)}" aria-label="Ver correo de ${safe(c.nombreComercial||c.nombre)}" title="Ver correo">${ICONO_CORREO}</button>`:"";}
 function cambiarVistaClientes(tipo){
   vistaClientes=tipo;
   try{localStorage.setItem(VIEW_KEY,tipo);}catch(e){}
@@ -126,7 +133,7 @@ function renderInicio(){
 }
 function renderClientes(){
   const q=$("buscar").value.toLowerCase().trim();
-  const lista=clientes.filter(c=>c.nombre.toLowerCase().includes(q)||(c.ruc||"").toLowerCase().includes(q));
+  const lista=clientes.filter(c=>[c.nombreComercial,c.nombre,c.nombreCliente,c.nombre_cliente,c.ruc,c.correo].some(v=>String(v||"").toLowerCase().includes(q)));
   $("contadorClientes").textContent=clientes.length+" clientes";
   $("vistaSimple").classList.toggle("active",vistaClientes==="simple");
   $("vistaDetallada").classList.toggle("active",vistaClientes==="detallada");
@@ -145,7 +152,10 @@ async function cargarFacturasCliente(id){const c=cliente();if(!c)return;const ro
 function renderDetalle(){
   const c=cliente();
   if(!c)return navegar("clientes");
-  $("nombreDetalle").textContent=c.nombre;
+  $("nombreDetalle").textContent=c.nombreComercial||c.nombre;
+  $("nombreClienteDetalle").textContent=c.nombreCliente||c.nombre_cliente||"";
+  $("nombreClienteDetalle").classList.toggle("hidden",!$("nombreClienteDetalle").textContent);
+  $("correoDetalle").innerHTML=botonCorreo(c);
   $("rucDetalle").textContent="RUC: "+(c.ruc||"No registrado");
   $("avatarDetalle").innerHTML=ICONO_USER;
   $("saldoDetalle").textContent=money(deuda(c));
@@ -220,7 +230,7 @@ function renderFactura(){
   const [label,clase]=estado(f);
   $("estadoFactura").textContent=label;
   $("estadoFactura").className="pill "+clase;
-  $("recCliente").textContent=c.nombre;
+  $("recCliente").textContent=c.nombreComercial||c.nombre;
   $("recRuc").textContent="RUC: "+(c.ruc||"No registrado");
   $("recFecha").textContent=f.fecha;
   $("recDetalle").textContent=f.detalle||"Servicio / producto";
@@ -299,28 +309,32 @@ function nuevoCliente(editar=false){
   if(editar){
     const c=cliente();
     if(!c)return;
-    $("cNombre").value=c.nombre;
+    $("cNombreComercial").value=c.nombreComercial||c.nombre||"";
+    $("cNombreCliente").value=c.nombreCliente||c.nombre_cliente||"";
     $("cRuc").value=c.ruc||"";
+    $("cCorreo").value=c.correo||"";
   }
   abrirModal("modalCliente");
 }
 function guardarCliente(e){
   e.preventDefault();
-  const nombre=$("cNombre").value.trim();
+  const nombre=$("cNombreComercial").value.trim();
+  const nombreCliente=$("cNombreCliente").value.trim();
   const ruc=$("cRuc").value.trim();
+  const correo=$("cCorreo").value.trim();
   if(!nombre)return;
-  if(supabaseActive){guardarClienteRemoto(nombre,ruc).catch(error=>aviso("No se pudo guardar el cliente: "+error.message));return;}
+  if(supabaseActive){guardarClienteRemoto(nombre,nombreCliente,ruc,correo).catch(error=>aviso("No se pudo guardar el cliente: "+error.message));return;}
   if(editando){
-    Object.assign(cliente(),{nombre,ruc});
+    Object.assign(cliente(),{nombre,nombreComercial:nombre,nombreCliente,ruc,correo});
   }else{
-    clientes.push({id:uid(),nombre,ruc,facturas:[]});
+    clientes.push({id:uid(),nombre,nombreComercial:nombre,nombreCliente,ruc,correo,facturas:[]});
   }
   if(!guardar())return;
   cerrar();
   navegar(editando?"detalle":"clientes");
   aviso("Cliente guardado");
 }
-async function guardarClienteRemoto(nombre,ruc){if(editando){await MiCarteraDB.update('mc_clientes',clienteId,{nombre,ruc,updated_at:new Date().toISOString()});const c=cliente();c.nombre=nombre;c.ruc=ruc;}else{const row=await MiCarteraDB.createCliente({nombre,ruc});clientes.unshift({id:row.id,nombre,ruc,facturas:[]});}cerrar();navegar(editando?"detalle":"clientes");aviso("Cliente guardado");}
+async function guardarClienteRemoto(nombre,nombreCliente,ruc,correo){if(editando){await MiCarteraDB.update('mc_clientes',clienteId,{nombre,nombre_cliente:nombreCliente,ruc,correo,updated_at:new Date().toISOString()});const c=cliente();Object.assign(c,{nombre,nombreComercial:nombre,nombreCliente,nombre_cliente:nombreCliente,ruc,correo});}else{const row=await MiCarteraDB.createCliente({nombre,nombre_cliente:nombreCliente,ruc,correo});clientes.unshift({id:row.id,nombre,nombreComercial:nombre,nombreCliente,nombre_cliente:nombreCliente,ruc,correo,facturas:[]});}cerrar();navegar(editando?"detalle":"clientes");aviso("Cliente guardado");}
 function borrarCliente(){
   const c=cliente();
   if(!c||!confirm("¿Eliminar este cliente y todas sus facturas y anticipos?"))return;
@@ -379,7 +393,7 @@ function guardarFactura(e){
   navegar("detalle");
   aviso("Factura registrada");
 }
-async function guardarFacturaRemota(e){e.preventDefault();const c=cliente();if(!c)return;const anterior=editandoFactura?factura():null,valor=cents($("fValor").value),ret=anterior?.ret||0,anticipos=anterior?anterior.anticipos:cents($("fAnticipos").value),numero=$("fNumero").value.trim(),fecha=$("fFecha").value,detalle=$("fDetalle").value.trim();if(!Number.isSafeInteger(valor)||valor<=0||!Number.isSafeInteger(anticipos)||anticipos<0||valor<ret+anticipos+anticiposRegistradosTotal(anterior||{anticiposRegistrados:[]})||!numero||!fecha)return aviso("Verifica los valores de la factura y anticipos");if(c.facturas.some(f=>f.numero.toLowerCase()===numero.toLowerCase()&&f.id!==anterior?.id))return aviso("Ya existe una factura con ese número para este cliente");try{let id=anterior?.id;if(anterior){const {error}=await MiCarteraDB.client.from('mc_facturas').update({numero,fecha,detalle,valor_centavos:valor,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;}else{const {data,error}=await MiCarteraDB.client.from('mc_facturas').insert({user_id:MiCarteraDB.userId,...toDbFactura({numero,fecha,detalle,valor,ret,retPct:null,anticipos,proforma:"",cheque:"",transf:"",banco:"",cuenta:""},c.id)}).select('id').single();if(error)throw error;id=data.id;}for(const tipo of ['proforma','factura']){const a=archivosFactura[tipo],yaGuardado=anterior?.archivosRemotos?.some(x=>x.tipo===tipo);if(a?.contenido){const blob=await(await fetch(a.contenido)).blob(),file=new File([blob],a.nombre,{type:a.tipo});await MiCarteraDB.uploadFacturaArchivo(id,tipo,file);}else if(!a&&yaGuardado){await MiCarteraDB.deleteFacturaArchivo(id,tipo);}}archivosFactura={proforma:null,factura:null};editandoFactura=false;cerrar();await cargarFacturasCliente(c.id);if(anterior){facturaId=id;await cargarAnticiposFactura(id);}aviso(anterior?"Factura actualizada":"Factura registrada");}catch(error){aviso("No se pudo guardar la factura: "+error.message);}}
+async function guardarFacturaRemota(e){e.preventDefault();const c=cliente();if(!c)return;const anterior=editandoFactura?factura():null,valor=cents($("fValor").value),ret=anterior?.ret||0,anticipos=anterior?anterior.anticipos:cents($("fAnticipos").value),numero=$("fNumero").value.trim(),fecha=$("fFecha").value,detalle=$("fDetalle").value.trim();if(!Number.isSafeInteger(valor)||valor<=0||!Number.isSafeInteger(anticipos)||anticipos<0||valor<ret+anticipos+anticiposRegistradosTotal(anterior||{anticiposRegistrados:[]})||!numero||!fecha)return aviso("Verifica los valores de la factura y anticipos");if(c.facturas.some(f=>f.numero.toLowerCase()===numero.toLowerCase()&&f.id!==anterior?.id))return aviso("Ya existe una factura con ese número para este cliente");try{let id=anterior?.id;if(anterior){const {error}=await MiCarteraDB.client.from('mc_facturas').update({numero,fecha,detalle,valor_centavos:valor,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;}else{const {data,error}=await MiCarteraDB.client.from('mc_facturas').insert({user_id:MiCarteraDB.userId,empresa_id:MiCarteraDB.empresaId,...toDbFactura({numero,fecha,detalle,valor,ret,retPct:null,anticipos,proforma:"",cheque:"",transf:"",banco:"",cuenta:""},c.id)}).select('id').single();if(error)throw error;id=data.id;}for(const tipo of ['proforma','factura']){const a=archivosFactura[tipo],yaGuardado=anterior?.archivosRemotos?.some(x=>x.tipo===tipo);if(a?.contenido){const blob=await(await fetch(a.contenido)).blob(),file=new File([blob],a.nombre,{type:a.tipo});await MiCarteraDB.uploadFacturaArchivo(id,tipo,file);}else if(!a&&yaGuardado){await MiCarteraDB.deleteFacturaArchivo(id,tipo);}}archivosFactura={proforma:null,factura:null};editandoFactura=false;cerrar();await cargarFacturasCliente(c.id);if(anterior){facturaId=id;await cargarAnticiposFactura(id);}aviso(anterior?"Factura actualizada":"Factura registrada");}catch(error){aviso("No se pudo guardar la factura: "+error.message);}}
 function nuevoAnticipo(){
   const f=factura();
   if(!f||saldo(f)===0){
@@ -416,7 +430,7 @@ async function guardarAnticipo(e){
   renderFactura();
   aviso(anterior?"Anticipo actualizado":"Anticipo registrado");
 }
-async function guardarAnticipoRemoto(e){const f=factura(),anterior=anticipoEditandoId?f?.anticiposRegistrados.find(a=>a.id===anticipoEditandoId):null,valor=cents($("aValor").value),banco=$("aBanco").value,tipoMovimiento=$("aTipoMovimiento").value,tipoCuenta=tipoMovimiento==='Transferencia'?$("aTipoCuenta").value:'',numeroCheque=tipoMovimiento==='Cheque'?$("aNumeroCheque").value.trim():'';if(!f||!Number.isSafeInteger(valor)||valor<=0||valor>saldo(f)+(anterior?.valor||0))return aviso("Anticipo fuera del saldo disponible");if(anticipoEditandoId&&!anterior)return aviso("No se encontró el anticipo para editar");if(!BANCOS[banco])return aviso("Selecciona un banco");if(tipoMovimiento==='Transferencia'&&!['Ahorro','Corriente'].includes(tipoCuenta))return aviso("Selecciona el tipo de cuenta");if(tipoMovimiento==='Cheque'&&!numeroCheque)return aviso("Ingresa el número de cheque");try{const rutaAnterior=anterior?.respaldoPath||null;let path=respaldoAnticipoEliminado?null:rutaAnterior;if(archivoRespaldoAnticipo?.contenido){const blob=await(await fetch(archivoRespaldoAnticipo.contenido)).blob(),file=new File([blob],archivoRespaldoAnticipo.nombre,{type:archivoRespaldoAnticipo.tipo}),objectPath=`${MiCarteraDB.userId}/${f.id}/${uid()}-${file.name}`;path=await MiCarteraDB.upload(objectPath,file);}const changes={fecha:$("aFecha").value,valor_centavos:valor,banco,tipo_movimiento:tipoMovimiento,tipo_cuenta:tipoCuenta,numero_cheque:numeroCheque,respaldo_path:path};if(anterior)await MiCarteraDB.update('mc_anticipos',anterior.id,changes);else await MiCarteraDB.createAnticipo({factura_id:f.id,...changes});if(rutaAnterior&&rutaAnterior!==path)await MiCarteraDB.removeStorage(rutaAnterior).catch(()=>{});archivoRespaldoAnticipo=null;anticipoEditandoId=null;respaldoAnticipoEliminado=false;cerrar();await cargarFacturasCliente(clienteId);facturaId=f.id;await cargarAnticiposFactura(f.id);aviso(anterior?"Anticipo actualizado":"Anticipo registrado");}catch(error){aviso("No se pudo guardar el anticipo: "+(error.message||JSON.stringify(error)));}}
+async function guardarAnticipoRemoto(e){const f=factura(),anterior=anticipoEditandoId?f?.anticiposRegistrados.find(a=>a.id===anticipoEditandoId):null,valor=cents($("aValor").value),banco=$("aBanco").value,tipoMovimiento=$("aTipoMovimiento").value,tipoCuenta=tipoMovimiento==='Transferencia'?$("aTipoCuenta").value:'',numeroCheque=tipoMovimiento==='Cheque'?$("aNumeroCheque").value.trim():'';if(!f||!Number.isSafeInteger(valor)||valor<=0||valor>saldo(f)+(anterior?.valor||0))return aviso("Anticipo fuera del saldo disponible");if(anticipoEditandoId&&!anterior)return aviso("No se encontró el anticipo para editar");if(!BANCOS[banco])return aviso("Selecciona un banco");if(tipoMovimiento==='Transferencia'&&!['Ahorro','Corriente'].includes(tipoCuenta))return aviso("Selecciona el tipo de cuenta");if(tipoMovimiento==='Cheque'&&!numeroCheque)return aviso("Ingresa el número de cheque");try{const rutaAnterior=anterior?.respaldoPath||null;let path=respaldoAnticipoEliminado?null:rutaAnterior;if(archivoRespaldoAnticipo?.contenido){const blob=await(await fetch(archivoRespaldoAnticipo.contenido)).blob(),file=new File([blob],archivoRespaldoAnticipo.nombre,{type:archivoRespaldoAnticipo.tipo}),objectPath=`${MiCarteraDB.userId}/${MiCarteraDB.empresaId}/${f.id}/${uid()}-${file.name}`;path=await MiCarteraDB.upload(objectPath,file);}const changes={fecha:$("aFecha").value,valor_centavos:valor,banco,tipo_movimiento:tipoMovimiento,tipo_cuenta:tipoCuenta,numero_cheque:numeroCheque,respaldo_path:path};if(anterior)await MiCarteraDB.update('mc_anticipos',anterior.id,changes);else await MiCarteraDB.createAnticipo({factura_id:f.id,...changes});if(rutaAnterior&&rutaAnterior!==path)await MiCarteraDB.removeStorage(rutaAnterior).catch(()=>{});archivoRespaldoAnticipo=null;anticipoEditandoId=null;respaldoAnticipoEliminado=false;cerrar();await cargarFacturasCliente(clienteId);facturaId=f.id;await cargarAnticiposFactura(f.id);aviso(anterior?"Anticipo actualizado":"Anticipo registrado");}catch(error){aviso("No se pudo guardar el anticipo: "+(error.message||JSON.stringify(error)));}}
 async function borrarAnticipo(id){
   const f=factura();
   if(!f||!confirm("¿Eliminar este anticipo?"))return;
@@ -438,7 +452,7 @@ function borrarFactura(){
   aviso("Factura eliminada");
 }
 function exportar(){
-  if(supabaseActive){aviso("La exportación remota y la migración de datos locales aún no están disponibles.");return;}
+  if(supabaseActive){exportarRespaldoRemoto().catch(error=>aviso("No se pudo exportar el respaldo: "+error.message));return;}
   const blob=new Blob([JSON.stringify(clientes,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
@@ -447,6 +461,26 @@ function exportar(){
   a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   $("menu").classList.add("hidden");
+}
+async function exportarRespaldoRemoto(){
+  aviso("Preparando respaldo completo…");
+  const snapshot=await MiCarteraDB.createBackupSnapshot();
+  const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="mi-cartera-respaldo-"+hoy()+".json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+  aviso("Respaldo completo descargado");
+}
+function validarRespaldoRemoto(d){
+  if(!d||d.format!=="mi-cartera-backup"||d.version!==1||!Array.isArray(d.clientes)||!Array.isArray(d.facturas)||!Array.isArray(d.anticipos)||!Array.isArray(d.archivos))return false;
+  const ids=(rows,key='id')=>{const s=new Set();for(const r of rows){if(!r||typeof r[key]!=="string"||s.has(r[key]))return false;s.add(r[key]);}return true;};
+  if(!ids(d.clientes)||!ids(d.facturas)||!ids(d.anticipos))return false;
+  const cids=new Set(d.clientes.map(x=>x.id)),fids=new Set(d.facturas.map(x=>x.id)),aids=new Set(d.anticipos.map(x=>x.id));
+  if(d.clientes.some(c=>typeof c.nombre!=="string"||!c.nombre.trim()||(c.nombre_cliente!==undefined&&typeof c.nombre_cliente!=="string")||(c.correo!==undefined&&typeof c.correo!=="string")))return false;
+  if(d.facturas.some(f=>!cids.has(f.cliente_id)||typeof f.numero!=="string"||!f.numero||typeof f.fecha!=="string"||!Number.isSafeInteger(f.valor_centavos)||f.valor_centavos<=0||!Number.isSafeInteger(f.retencion_centavos)||!Number.isSafeInteger(f.anticipo_inicial_centavos)))return false;
+  if(d.anticipos.some(a=>!fids.has(a.factura_id)||typeof a.fecha!=="string"||!Number.isSafeInteger(a.valor_centavos)||a.valor_centavos<=0))return false;
+  const fileKeys=new Set();
+  return d.archivos.every(a=>{if(!a||!((a.kind==="invoice"&&fids.has(a.factura_id)&&["proforma","factura"].includes(a.tipo))||(a.kind==="advance"&&aids.has(a.anticipo_id)))||typeof a.nombre!=="string"||typeof a.mime_type!=="string"||typeof a.contenido!=="string"||!a.contenido.startsWith("data:"+a.mime_type+";base64,"))return false;const key=a.kind==="invoice"?`${a.factura_id}:${a.tipo}`:`${a.anticipo_id}:respaldo`;if(fileKeys.has(key))return false;fileKeys.add(key);return true;});
 }
 function validar(datos){
   if(!Array.isArray(datos))return false;
@@ -479,11 +513,17 @@ function validar(datos){
   return true;
 }
 async function importar(e){
-  if(supabaseActive){aviso("La importación de respaldos a Supabase aún no está disponible.");e.target.value="";return;}
   const file=e.target.files[0];
   if(!file)return;
   try{
     const datos=JSON.parse(await file.text());
+    if(supabaseActive){
+      if(!validarRespaldoRemoto(datos))throw Error("Formato de respaldo remoto inválido");
+      if(!confirm("Se agregarán los datos de este respaldo a la cuenta actual de Supabase. Los datos existentes se conservarán. ¿Continuar?"))return;
+      await MiCarteraDB.restoreBackup(datos);
+      const rows=await MiCarteraDB.listClientes("",500,0);cargarClientesRemotos(rows.rows);
+      clienteId=null;facturaId=null;navegar("inicio");aviso("Respaldo restaurado correctamente");return;
+    }
     if(!validar(datos))throw Error("Archivo inválido");
     if(!confirm("¿Reemplazar todos los datos actuales por este respaldo?"))return;
     clientes=datos;
@@ -516,7 +556,7 @@ function renderGraficoCircular(totalNeto,totalCobrado,totalSaldo,porcSaldo,porcC
   return `<div class="chart-layout"><div class="chart-ring" role="img" aria-label="Total facturado: ${money(totalNeto)}. Saldo pendiente: ${money(totalSaldo)} (${porcSaldo.toFixed(1)}%)." style="background:conic-gradient(#e55454 0% ${porcSaldo}%,#ffda27 ${porcSaldo}% 100%)"><div class="chart-ring-center"><small>Total Facturado</small><strong>${money(totalNeto)}</strong></div></div><div class="chart-legend"><div class="chart-legend-row"><span class="chart-legend-dot" style="background:#ffda27"></span><div><div class="chart-legend-label">Total Cobrado</div><strong class="chart-legend-value">${money(totalCobrado)}</strong><span class="chart-legend-percent">${porcCobrado.toFixed(1)}%</span></div></div><div class="chart-legend-row"><span class="chart-legend-dot" style="background:#e55454"></span><div><div class="chart-legend-label">Saldo pendiente</div><strong class="chart-legend-value">${money(totalSaldo)}</strong><span class="chart-legend-percent">${porcSaldo.toFixed(1)}%</span></div></div></div></div><p class="chart-note">Base del gráfico: valor de facturas menos retenciones. El amarillo representa lo cobrado y el rojo el saldo pendiente.</p>`;
 }
 function renderGraficoBarras(datos){
-  const items=datos.map(c=>{const facturado=sum(c.facturas.map(f=>Math.max(0,f.valor-f.ret))),pendiente=sum(c.facturas.map(saldo));return {nombre:c.nombre,facturado,pendiente,cobrado:Math.max(0,facturado-pendiente)};});
+  const items=datos.map(c=>{const facturado=sum(c.facturas.map(f=>Math.max(0,f.valor-f.ret))),pendiente=sum(c.facturas.map(saldo));return {nombre:c.nombreComercial||c.nombre,facturado,pendiente,cobrado:Math.max(0,facturado-pendiente)};});
   if(!items.length)return '<div class="chart-empty">No hay clientes para mostrar en este resumen.</div>';
   const maximo=Math.max(1,...items.map(i=>i.facturado)),altoGrafico=220,arriba=32,abajo=108,izquierda=78,espacio=92,anchoBarra=38,ancho=Math.max(370,izquierda+18+items.length*espacio),alto=arriba+altoGrafico+abajo,base=arriba+altoGrafico;
   const y=v=>base-(v/maximo)*altoGrafico,elementos=[];
@@ -534,7 +574,7 @@ function renderGraficoBarras(datos){
 }
 function renderInicio(){
   const selector=$("filtroClienteInicio"),previo=seleccionInicio;
-  selector.innerHTML='<option value="todos">Todos los clientes</option>'+[...clientes].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(c=>`<option value="${safe(c.id)}">${safe(c.nombre)}</option>`).join('');
+  selector.innerHTML='<option value="todos">Todos los clientes</option>'+[...clientes].sort((a,b)=>(a.nombreComercial||a.nombre).localeCompare(b.nombreComercial||b.nombre,'es')).map(c=>`<option value="${safe(c.id)}">${safe(c.nombreComercial||c.nombre)}</option>`).join('');
   if(previo!=="todos"&&!clientes.some(c=>c.id===previo))seleccionInicio="todos";
   selector.value=seleccionInicio;
   const datos=seleccionInicio==="todos"?clientes:clientes.filter(c=>c.id===seleccionInicio);
@@ -593,7 +633,7 @@ function renderZonaRespaldoAnticipo(){const zona=$("aRespaldoZona");if(!zona)ret
 function seleccionarRespaldoAnticipo(file){const ext=file.name.split('.').pop().toLowerCase(),ok=(file.type==='image/png'&&ext==='png')||(file.type==='image/jpeg'&&['jpg','jpeg'].includes(ext));if(!ok){aviso('El respaldo debe ser PNG o JPG');return;}if(file.size>MAX_ARCHIVO){aviso('La imagen supera 1,5 MB');return;}const reader=new FileReader();reader.onload=()=>{archivoRespaldoAnticipo={nombre:file.name,tipo:file.type,tamano:file.size,contenido:reader.result};respaldoAnticipoEliminado=false;renderZonaRespaldoAnticipo();};reader.onerror=()=>aviso('No se pudo leer la imagen');reader.readAsDataURL(file);}
 function configurarRetencion(f){const select=$("retencionPorcentaje"),custom=$("retencionPersonalizada");custom.classList.add('hidden');if(f.retPct==null&&f.ret>0){select.value='fixed';custom.value='';actualizarPorcentajeRetencionManual();return;}const pct=Number(f.retPct??0);const match=['0','1','1.75','2','2.75','3','5','8','10'].find(x=>x===String(pct));if(match!==undefined){select.value=match;custom.value='';}else{select.value='custom';custom.value=pct;custom.classList.remove('hidden');}actualizarPorcentajeRetencionManual();}
 function configurarEditorRetencion(){if($("retencionMontoControl"))return;const original=$("recRetencion"),wrap=document.createElement('div');wrap.id='retencionMontoControl';wrap.className='retencion-monto-control';wrap.innerHTML=`<button type="button" id="editarRetencion" class="retencion-pencil" aria-label="Editar retención">${ICONO_LAPIZ}</button><strong id="retencionValorVisible"></strong><div id="retencionEditor" class="retencion-editor hidden"><span>$</span><input id="retencionMontoInput" type="text" inputmode="decimal" data-money min="0"><button type="button" id="guardarRetencionMonto">✓</button><button type="button" id="cancelarRetencionMonto">×</button></div>`;original.replaceWith(wrap);bindCurrencyInputs(wrap);$("retencionMontoInput").addEventListener("input",actualizarPorcentajeRetencionManual);$("editarRetencion").onclick=abrirEditorMontoRetencion;const cancelar=()=>{$("retencionEditor").classList.add('hidden');$("editarRetencion").classList.remove('hidden');$("retencionValorVisible").classList.remove('hidden');actualizarPorcentajeRetencionManual();};$("cancelarRetencionMonto").onclick=cancelar;$("guardarRetencionMonto").onclick=async()=>{const f=factura(),s=$("retencionMontoInput").value;if(!f||s.trim()===''||!Number.isFinite(cents(s)))return aviso('Valor inválido');const ret=cents(s);if(ret<0||ret+f.anticipos+anticiposRegistradosTotal(f)>f.valor)return aviso('Retención fuera del saldo disponible');const old=f.ret,oldPct=f.retPct;if(supabaseActive){try{await MiCarteraDB.update('mc_facturas',f.id,{retencion_centavos:ret,retencion_porcentaje:null,updated_at:new Date().toISOString()});}catch(error){return aviso('No se pudo guardar la retención: '+error.message);}}else{f.ret=ret;delete f.retPct;if(!guardar()){f.ret=old;if(oldPct===undefined)delete f.retPct;else f.retPct=oldPct;return;}}f.ret=ret;delete f.retPct;cancelar();renderFactura();aviso('Retención actualizada');};$("retencionMontoInput").onkeydown=e=>{if(e.key==='Enter')$("guardarRetencionMonto").click();if(e.key==='Escape')cancelar();};}
-function renderFactura(){const f=factura(),c=cliente();if(!f||!c)return navegar('detalle');configurarEncabezadoFactura();configurarEditorRetencion();$("numeroFactura").textContent=f.numero;renderDocumentosEncabezado(f);const [label,clase]=estado(f);$("estadoFactura").textContent=label;$("estadoFactura").className='pill '+clase;$("recCliente").textContent=c.nombre;$("recRuc").textContent='RUC: '+(c.ruc||'No registrado');$("recFecha").textContent=f.fecha;$("recDetalle").textContent=f.detalle||'Servicio / producto';$("recPrecio").textContent=money(f.valor);$("recValor").textContent=money(f.valor);$("recSubtotal").textContent=money(f.valor);$("recTotal").textContent=money(cobrar(f));$("retencionValorVisible").textContent='− '+money(f.ret);$("retencionEditor").classList.add('hidden');$("editarRetencion").classList.remove('hidden');$("retencionValorVisible").classList.remove('hidden');configurarRetencion(f);const movimientos=f.anticipos>0?[{id:'inicial-'+f.id,fecha:f.fecha,valor:f.anticipos,esInicial:true},...f.anticiposRegistrados]:f.anticiposRegistrados;$("cantidadAnticipos").textContent=movimientos.length+' movimientos';$("listaAnticipos").innerHTML=movimientos.map(a=>{const medio=(a.tipoMovimiento||'Transferencia')==='Transferencia'?`Transferencia${a.tipoCuenta?' · '+safe(a.tipoCuenta):''}`:(a.tipoMovimiento==='Cheque'?`Cheque #${safe(a.numeroCheque||'')}`:'Efectivo');return `<div class="anticipo-card"><div class="anticipo-icon">${ICONO_ANTICIPO}</div><div class="anticipo-text"><small>${a.esInicial?'Anticipo inicial · ':''}${safe(a.fecha)}${a.banco?' · Banco '+safe(a.banco):''}${!a.esInicial?' · '+medio:''}</small><strong>+ ${money(a.valor)}</strong>${a.respaldoPath?`<button type="button" class="documento-capsula anticipo-respaldo" data-ver-respaldo="${safe(a.id)}">${ICONO_CLIP} Ver respaldo</button>`:''}</div>${a.esInicial?'':`<button type="button" class="delete-mini" data-editar-anticipo="${safe(a.id)}">Editar</button>`}</div>`;}).join('')||'<div class="empty">Todavía no hay anticipos registrados.</div>';$("listaAnticipos").querySelectorAll('[data-ver-respaldo]').forEach(b=>b.addEventListener('click',async()=>{try{const a=f.anticiposRegistrados.find(x=>x.id===b.dataset.verRespaldo);if(!a?.respaldoPath)throw new Error('No se encontró la ruta del respaldo');const url=await MiCarteraDB.signedUrl(a.respaldoPath);window.open(url,'_blank','noopener');}catch(error){aviso('No se pudo abrir el respaldo: '+error.message);}}));}
+function renderFactura(){const f=factura(),c=cliente();if(!f||!c)return navegar('detalle');configurarEncabezadoFactura();configurarEditorRetencion();$("numeroFactura").textContent=f.numero;renderDocumentosEncabezado(f);const [label,clase]=estado(f);$("estadoFactura").textContent=label;$("estadoFactura").className='pill '+clase;$("recCliente").textContent=c.nombreComercial||c.nombre;$("recRuc").textContent='RUC: '+(c.ruc||'No registrado');$("recFecha").textContent=f.fecha;$("recDetalle").textContent=f.detalle||'Servicio / producto';$("recPrecio").textContent=money(f.valor);$("recValor").textContent=money(f.valor);$("recSubtotal").textContent=money(f.valor);$("recTotal").textContent=money(cobrar(f));$("retencionValorVisible").textContent='− '+money(f.ret);$("retencionEditor").classList.add('hidden');$("editarRetencion").classList.remove('hidden');$("retencionValorVisible").classList.remove('hidden');configurarRetencion(f);const movimientos=f.anticipos>0?[{id:'inicial-'+f.id,fecha:f.fecha,valor:f.anticipos,esInicial:true},...f.anticiposRegistrados]:f.anticiposRegistrados;$("cantidadAnticipos").textContent=movimientos.length+' movimientos';$("listaAnticipos").innerHTML=movimientos.map(a=>{const medio=(a.tipoMovimiento||'Transferencia')==='Transferencia'?`Transferencia${a.tipoCuenta?' · '+safe(a.tipoCuenta):''}`:(a.tipoMovimiento==='Cheque'?`Cheque #${safe(a.numeroCheque||'')}`:'Efectivo');return `<div class="anticipo-card"><div class="anticipo-icon">${ICONO_ANTICIPO}</div><div class="anticipo-text"><small>${a.esInicial?'Anticipo inicial · ':''}${safe(a.fecha)}${a.banco?' · Banco '+safe(a.banco):''}${!a.esInicial?' · '+medio:''}</small><strong>+ ${money(a.valor)}</strong>${a.respaldoPath?`<button type="button" class="documento-capsula anticipo-respaldo" data-ver-respaldo="${safe(a.id)}">${ICONO_CLIP} Ver respaldo</button>`:''}</div>${a.esInicial?'':`<button type="button" class="delete-mini" data-editar-anticipo="${safe(a.id)}">Editar</button>`}</div>`;}).join('')||'<div class="empty">Todavía no hay anticipos registrados.</div>';$("listaAnticipos").querySelectorAll('[data-ver-respaldo]').forEach(b=>b.addEventListener('click',async()=>{try{const a=f.anticiposRegistrados.find(x=>x.id===b.dataset.verRespaldo);if(!a?.respaldoPath)throw new Error('No se encontró la ruta del respaldo');const url=await MiCarteraDB.signedUrl(a.respaldoPath);window.open(url,'_blank','noopener');}catch(error){aviso('No se pudo abrir el respaldo: '+error.message);}}));}
 function configurarModalAnticipo(editar){$("formAnticipo").reset();$("aTipoMovimiento").value='Transferencia';actualizarCamposMovimiento();$("tituloAnticipo").textContent=editar?'Editar anticipo':'Registrar anticipo';$("formAnticipo").querySelector('.submit').textContent=editar?'Guardar cambios':'Guardar anticipo';$("eliminarAnticipo").classList.toggle('hidden',!editar);$("aValor").max=((saldo(factura())+(editar?factura().anticiposRegistrados.find(a=>a.id===anticipoEditandoId)?.valor||0:0))/100).toFixed(2);$("saldoDisponible").textContent=money(saldo(factura())+(editar?factura().anticiposRegistrados.find(a=>a.id===anticipoEditandoId)?.valor||0:0));}
 function nuevoAnticipo(){const f=factura();if(!f||saldo(f)===0)return aviso('Esta factura no tiene saldo pendiente');anticipoEditandoId=null;archivoRespaldoAnticipo=null;respaldoAnticipoEliminado=false;configurarModalAnticipo(false);$("aFecha").value=hoy();actualizarLogoBanco();renderZonaRespaldoAnticipo();abrirModal('modalAnticipo');}
 function editarAnticipo(id){const f=factura(),a=f?.anticiposRegistrados.find(item=>item.id===id);if(!a)return aviso('No se encontró el anticipo');anticipoEditandoId=id;respaldoAnticipoEliminado=false;archivoRespaldoAnticipo=a.respaldo|| (a.respaldoPath?{remote:true,nombre:a.respaldoPath.split('/').pop()||'Respaldo guardado'}:null);configurarModalAnticipo(true);$("aFecha").value=a.fecha;$("aValor").value=currencyInput(a.valor/100);$("aBanco").value=a.banco||'';$("aTipoMovimiento").value=a.tipoMovimiento||'Transferencia';$("aTipoCuenta").value=a.tipoCuenta||'';$("aNumeroCheque").value=a.numeroCheque||'';actualizarCamposMovimiento();actualizarLogoBanco();renderZonaRespaldoAnticipo();abrirModal('modalAnticipo');}
@@ -614,7 +654,7 @@ $("editarCliente").addEventListener("click",()=>nuevoCliente(true));
 $("buscar").addEventListener("input",()=>{clientesOffset=0;renderClientes();});
 $("buscarFacturaCliente").addEventListener("input",()=>renderListaFacturas());
 $("authToggle").addEventListener("click",()=>{authMode=authMode==="signin"?"signup":"signin";$("authTitle").textContent=authMode==="signin"?"Mi Cartera":"Crear cuenta";$("authDescription").textContent=authMode==="signin"?"Inicia sesión para acceder a tus datos.":"Regístrate con tu correo y contraseña.";$("authSubmit").textContent=authMode==="signin"?"Iniciar sesión":"Crear cuenta";$("authToggle").textContent=authMode==="signin"?"Crear cuenta":"Ya tengo una cuenta";$("authPassword").autocomplete=authMode==="signin"?"current-password":"new-password";$("authMessage").textContent="";});
-$("authForm").addEventListener("submit",async e=>{e.preventDefault();$("authMessage").textContent="Conectando…";try{const email=$("authEmail").value.trim(),password=$("authPassword").value;if(authMode==="signin")await MiCarteraDB.signIn(email,password);else{const result=await MiCarteraDB.signUp(email,password);if(!result.session){$("authMessage").textContent="Revisa tu correo para confirmar la cuenta y luego inicia sesión.";return;}}await iniciarAplicacionRemota();}catch(error){$("authMessage").textContent=error.message||"No se pudo iniciar sesión.";}});
+$("authForm").addEventListener("submit",async e=>{e.preventDefault();$("authMessage").textContent="Conectando";try{const email=$("authEmail").value.trim(),password=$("authPassword").value,empresa=$("authEmpresa").value;empresaActiva=empresa;if(authMode==="signin")await MiCarteraDB.signIn(email,password);else{const result=await MiCarteraDB.signUp(email,password);if(!result.session){$("authMessage").textContent="Confirma el correo y vuelve a iniciar sesión.";return;}}await MiCarteraDB.setEmpresa(empresa);actualizarMarcaEmpresa();await iniciarAplicacionRemota();}catch(error){$("authMessage").textContent=error.message||"No se pudo iniciar sesión.";}});
 $("btnCerrarSesion").addEventListener("click",async()=>{try{await MiCarteraDB.signOut();supabaseActive=false;clientes=[];clienteId=null;facturaId=null;authVisible(true);$("btnCerrarSesion").classList.add("hidden");}catch(error){aviso("No se pudo cerrar la sesión: "+error.message);}});
 $("formCliente").addEventListener("submit",guardarCliente);
 $("eliminarCliente").addEventListener("click",borrarCliente);
@@ -645,6 +685,9 @@ document.addEventListener("keydown",e=>{
   }
 });
 document.addEventListener("click",e=>{
+  const correoBtn=e.target.closest("[data-correo]");
+  if(correoBtn){e.stopPropagation();const c=clientes.find(item=>item.id===correoBtn.dataset.correo);if(c)abrirCorreo(c,correoBtn);return;}
+  if(!e.target.closest(".correo-popover"))cerrarCorreo();
   const ab=e.target.closest("[data-editar-anticipo]");
   if(ab){editarAnticipo(ab.dataset.editarAnticipo);return;}
   const f=e.target.closest("[data-factura]");
@@ -652,6 +695,13 @@ document.addEventListener("click",e=>{
   const c=e.target.closest("[data-cliente]");
   if(c)abrirCliente(c.dataset.cliente);
 });
+function abrirCorreo(c,anchor){
+  cerrarCorreo();const box=document.createElement("div");box.className="correo-popover";box.setAttribute("role","dialog");
+  box.innerHTML=`<span>${safe(c.correo)}</span><button type="button" class="correo-copy" aria-label="Copiar correo" title="Copiar correo"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>`;
+  document.body.append(box);const r=anchor.getBoundingClientRect();box.style.left=Math.max(10,Math.min(innerWidth-box.offsetWidth-10,r.left+r.width/2-box.offsetWidth/2))+"px";box.style.top=Math.min(innerHeight-box.offsetHeight-10,r.bottom+7)+"px";
+  box.querySelector(".correo-copy").addEventListener("click",async e=>{e.stopPropagation();try{await navigator.clipboard.writeText(c.correo);aviso("Correo copiado");cerrarCorreo();}catch(error){aviso("No se pudo copiar el correo");}});
+}
+function cerrarCorreo(){document.querySelectorAll(".correo-popover").forEach(el=>el.remove());}
 configurarFormularioFactura();
 bindCurrencyInputs();
 aplicarEstilosExtra();
@@ -661,6 +711,7 @@ $("graficoBarras").addEventListener("click",()=>{tipoGraficoInicio='barras';rend
 $("aBanco").addEventListener("change",actualizarLogoBanco);
 $("aTipoMovimiento").addEventListener("change",actualizarCamposMovimiento);
 cargar();
-async function iniciarAplicacionRemota(){supabaseActive=true;authVisible(false);$("btnCerrarSesion").classList.remove("hidden");$("topMenuPlaceholder")?.remove();$("btnMenu").parentElement.appendChild($("btnCerrarSesion"));$("filtroClienteInicio").disabled=false;$("filtroClienteInicio").title="";try{const rows=await MiCarteraDB.listClientes("",500,0);cargarClientesRemotos(rows.rows);navegar("inicio");}catch(error){authVisible(true);$("authMessage").textContent="No se pudieron cargar los datos. Revisa las políticas de Supabase: "+error.message;}}
-async function iniciar(){authVisible(true);$("authMessage").textContent="Comprobando sesión…";try{if(await MiCarteraDB.init()){await iniciarAplicacionRemota();}else{$("authMessage").textContent="Inicia sesión para conectarte a tus datos en Supabase.";}}catch(error){$("authMessage").textContent=error.message||"No se pudo conectar con Supabase.";}}
+async function iniciarAplicacionRemota(){supabaseActive=true;actualizarMarcaEmpresa();authVisible(false);$("btnCerrarSesion").classList.remove("hidden");$("topMenuPlaceholder")?.remove();$("btnMenu").parentElement.appendChild($("btnCerrarSesion"));$("filtroClienteInicio").disabled=false;$("filtroClienteInicio").title="";try{const rows=await MiCarteraDB.listClientes("",500,0);cargarClientesRemotos(rows.rows);navegar("inicio");}catch(error){authVisible(true);$("authMessage").textContent="No se pudieron cargar los datos. Revisa las políticas de Supabase: "+error.message;}}
+function actualizarMarcaEmpresa(){const leonardo=empresaActiva==="LEONARDO";document.querySelector(".brand>span:last-child").innerHTML=leonardo?"LEONARDO<small>Mi Cartera</small>":"MAGROCAM<small>RUC: 0702141409001</small>";}
+async function iniciar(){empresaActiva=localStorage.getItem("mi_cartera_empresa")||"MAGROCAM";$("authEmpresa").value=empresaActiva;actualizarMarcaEmpresa();authVisible(true);$("authMessage").textContent="Comprobando sesión…";try{if(await MiCarteraDB.init()){await MiCarteraDB.setEmpresa(empresaActiva);await iniciarAplicacionRemota();}else{$("authMessage").textContent="Inicia sesión para conectarte a tus datos en Supabase.";}}catch(error){$("authMessage").textContent=error.message||"No se pudo conectar con Supabase.";}}
 iniciar();
